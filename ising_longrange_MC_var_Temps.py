@@ -47,10 +47,11 @@ def energy(lattice, i, j, k):
                 continue
             dx = abs(m - i)
             dy = abs(n - j)
-            dist = dx + dy
+            #dist = dx + dy
+            dist = np.sqrt(dx**2 + dy**2)
             if dist > k:
                 continue
-            energy += lattice[i,j] * lattice[m%L, n%L] / dist**2
+            energy += lattice[i,j] * lattice[m%L, n%L] / dist**4
     energy *= J
     return -energy
 
@@ -166,28 +167,30 @@ def avg(lattice,k,T):
 Analysis of magnetization and energy over various temperatures for 
 different neighbor orders 
 '''
-temps = np.linspace(0.5, 12.5, 20)
-L = 50
-k_order = np.array([1, 2, 5, 10])
+temps = np.linspace(0.5, 6.5, 50)
+L = 125
+k_order = np.array([1, 2, 5])
 
 
 start_spins = initi_lattice(L)
 en = np.zeros((4,len(temps)))
 mag = np.zeros((4,len(temps)))
+sus = np.empty((4,len(temps)))
 
 max_temps = len(temps)
 
-print(f'\nStaring computation for L={L}')
+print(f'\nStarting computation for L={L}')
 for j,k in enumerate(k_order):
     tic = time.time()
+    spin = start_spins
     print('0.00%',end='')
     for i,T in enumerate(temps):
-        ee, spin, ratio, mm = metropolisMC(start_spins,int(15e6),k,T)
-        E = np.average(ee)
-        M = np.average(mm)
+        ee, spin, ratio, mm = metropolisMC(spin,int(.75e6/np.sqrt(k)),k,T)
+        E = np.mean(ee)
+        M = np.mean(mm)
         en[j,i] = E
         mag[j,i] = M
-
+        #sus[j,i] = (np.mean(np.square(mm))- M**2)/T
         print(f'\r{(i/max_temps*100):.2f}%', end='')
 
     toc = time.time()
@@ -201,19 +204,33 @@ plt.rc('font', size=20)
 plt.plot(temps,en[0],'o:', label='k=1')
 plt.plot(temps,en[1],'o:', label='k=2')
 plt.plot(temps,en[2],'o:', label='k=5')
-plt.plot(temps,en[3],'o:', label='k=10')
+#plt.plot(temps,en[3],'o:', label='k=10')
 plt.xlabel(r'T [a.u.]')
 plt.ylabel(r'$\bar{\mathcal{H}}$/N [a.u.]')
 plt.legend()
-plt.savefig('energy_'+str(L)+'.png')
+plt.savefig('/Users/philipp/Documents/Sthlm Uni/Simulation Methods/energy_'+str(L)+'.png')
 
 plt.figure(figsize=(10,7))
 plt.rc('font', size=20)
 plt.plot(temps,mag[0],'o:', label='k=1')
 plt.plot(temps,mag[1],'o:', label='k=2')
 plt.plot(temps,mag[2],'o:', label='k=5')
-plt.plot(temps,mag[3],'o:', label='k=10')
+#plt.plot(temps,mag[3],'o:', label='k=10')
 plt.xlabel(r'T [a.u.]')
 plt.ylabel(r'$\bar{M}/N$ [a.u.]')
 plt.legend()
-plt.savefig('mag_'+str(L)+'.png')
+plt.savefig('/Users/philipp/Documents/Sthlm Uni/Simulation Methods/Mag_'+str(L)+'.png')
+
+plt.figure(figsize=(10,7))
+plt.rc('font', size=20)
+plt.plot(temps,sus[0],'o:', label='k=1')
+plt.plot(temps,sus[1],'o:', label='k=2')
+plt.plot(temps,sus[2],'o:', label='k=5')
+#plt.plot(temps,mag[3],'o:', label='k=10')
+plt.xlabel(r'%\chi [a.u.]%')
+plt.ylabel(r'$\bar{M}/N$ [a.u.]')
+plt.legend()
+
+plt.show()
+random_seed = np.random.get_state()[1][0]
+print(random_seed)
