@@ -11,15 +11,23 @@ Simulations are done for a fixed temperature
 
 import numpy as np
 from matplotlib import pyplot as plt
-from tqdm import tqdm
+#from tqdm import tqdm
 from numba import njit
 import time
 from matplotlib import animation
+import random
+import math
 
-np.random.seed(42069) 
+#np.random.seed(42069) 
+#np.random.seed(2147483648)
+np.random.default_rng()
+
+random_seed = np.random.get_state()[1][0]
+print(random_seed)
 
 # Const.
 J = 1;
+path = '/Users/philipp/Documents/Sthlm Uni/Simulation Methods/'
 
 def initi_lattice(L):
     ''' initial random lattice / cold start lattice'''
@@ -49,8 +57,8 @@ def energy(lattice, i, j, k):
                 continue
             dx = abs(m - i)
             dy = abs(n - j)
-            dist = dx + dy      # manhatten distance norm
-            #dist = np.sqrt(dx**2 + dy**2) # eulcidian distance norm
+            #dist = dx + dy      # manhatten distance norm
+            dist = np.sqrt(dx**2 + dy**2) # eulcidian distance norm
             if dist > k:
                 continue
             energy += J* lattice[i,j] * lattice[m%L, n%L] / dist**2
@@ -133,16 +141,16 @@ def metropolisMC(lattice, num_steps, k, temp):
 
 def animate(i):
     ax.clear()
-    ax.imshow(spins[i],cmap='gray', vmin=-1, vmax = 1)
+    ax.imshow(Spin[i],cmap='gray', vmin=-1, vmax = 1)
 
 ###### FIRST PART: STUDY CHANGE OF SYSTEMS ##############################
 # prameters
 sizes = np.array([30,50]);
 T= 1 
-k_order = np.array([1, 2, 5, 10]);
+k_order = np.array([1, 2, 5]);
 
 #np.random.seed(2506)
-L = 30
+L = 150
 
 # takes the same start lattice for all neighbor iterations
 lattice = initi_lattice(L);
@@ -154,10 +162,11 @@ print('compile done')
 
 for k in (k_order):
     start_spins = lattice.copy()
-    _, spins, acc_ratio, _ = metropolisMC(start_spins, int(10e6), k, T)  
+    _, spins, acc_ratio, _ = metropolisMC(start_spins, int(0.75e6), k, T)  
     if acc_ratio == 0:
         print('Failed for k= ',k)
         continue
+    print(acc_ratio)
     counter = 0;
     num_plot = np.floor(np.array([0, 0.4, 0.85])*len(spins)).astype(int)
     for i in num_plot:
@@ -166,12 +175,18 @@ for k in (k_order):
         plt.savefig('lat_L'+str(L)+'_k'+str(k)+'_'+str(counter)+'.png')
         counter +=1
 
+    np.save(path+'spins_'+str(k)+'_L'+str(L)+'.npy' , np.array(spins))
+    
     # gives animations of the change of the lattice
-    '''spins = np.array(spins)
+    print('pre - animation')
+    Spin = np.array(spins)
     c = int(100/k)
-    spins = spins[::c]
-    #fig, ax = plt.subplots(figsize=(9,8))
-    #ani = animation.FuncAnimation(fig, animate, frames=spins.shape[0], interval=60, blit=False)
-    #ani.save('spins_L'+str(L)+'_k'+str(k)+'.mp4', writer='ffmpeg', fps=48, bitrate=1800)'''
+    print(c)
+    Spin = Spin[::c]
+    fig, ax = plt.subplots(figsize=(9,8))
+    ani = animation.FuncAnimation(fig, animate, frames=Spin.shape[0], interval=600, blit=False)
+    ani.save('/Users/philipp/Documents/Sthlm Uni/Simulation Methods/spins_L'+str(L)+'_k'+str(k)+'.mp4', writer='ffmpeg', fps=48, bitrate=1800)
     print('done k= ',k)
 print(L, ' done')
+
+#plt.show()
